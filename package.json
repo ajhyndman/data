@@ -16,14 +16,20 @@
     "@types/node": "^12.12.30"
   },
   "devDependencies": {
+    "@types/airtable": "0.5.7",
     "@types/jest": "^24.9.1",
     "@types/js-yaml": "^3.12.2",
+    "@types/ramda": "0.27.3",
+    "airtable": "0.8.1",
+    "dotenv": "8.2.0",
     "gts": "^1.1.2",
     "jest": "^24.9.0",
     "js-yaml": "^3.13.1",
     "json-stringify-deterministic": "^1.0.1",
+    "ramda": "0.27.0",
     "source-map-support": "^0.5.13",
     "ts-jest": "^24.3.0",
+    "ts-node": "8.8.2",
     "typescript": "^3.8.3"
   },
   "scripts": {
@@ -39,6 +45,7 @@
     "import": "node build/tools/convert-ps-data.js vendor/pokemon-showdown/data build/data",
     "presmogdex-export": "npm run compile",
     "smogdex-export": "node build/tools/smogdex-export.js vendor/pokemon-showdown/data build/smogdex-export",
-    "ps-sync": "git -C vendor/pokemon-showdown pull && npm run test && git commit -m 'Update PS dependency' vendor/pokemon-showdown"
+    "ps-sync": "git -C vendor/pokemon-showdown pull && npm run test && git commit -m 'Update PS dependency' vendor/pokemon-showdown",
+    "airtable-export": "ts-node scripts/airtable-export.ts"
   }
 }
