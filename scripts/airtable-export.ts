@@ -5,7 +5,6 @@ import { isEmpty, prepend, take, drop } from 'ramda';
 import DATA from '../build/data/8.json';
 import { LearnsetFields, MoveFields } from './airtable-types';
 import { Move, Species, Type } from './types';
-import { Transform } from 'stream';
 
 type IdMap = {
   [name: string]: string;
