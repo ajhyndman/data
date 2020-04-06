@@ -3,8 +3,9 @@ import { config } from 'dotenv';
 import { isEmpty, prepend, take, drop } from 'ramda';
 
 import DATA from '../build/data/8.json';
-import { MoveFields } from './airtable-types';
-import { Move, Type } from './types';
+import { LearnsetFields, MoveFields } from './airtable-types';
+import { Move, Species, Type } from './types';
+import { Transform } from 'stream';
 
 type IdMap = {
   [name: string]: string;
@@ -17,6 +18,8 @@ config();
 const MOVES: Move[] = DATA.moves;
 // @ts-ignore
 const TYPES: Type[] = DATA.types;
+// @ts-ignore
+const SPECIES: Species[] = DATA.species;
 const AIRTABLE_BASE_ID = 'appFmM32VIEYyRwxI';
 
 const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(AIRTABLE_BASE_ID);
@@ -48,24 +51,8 @@ function groupsOf<T>(n: number, list: T[]): T[][] {
   return isEmpty(list) ? [] : prepend(take(n, list), groupsOf(n, drop(n, list)));
 }
 
-async function fetchTypeIds(): Promise<IdMap> {
-  const records = await base('Type')
-    .select({
-      fields: ['name'],
-    })
-    .all();
-  return records.reduce(
-    (acc, record) => ({
-      ...acc,
-      // @ts-ignore
-      [record.fields.name]: record.id,
-    }),
-    {}
-  );
-}
-
-async function fetchMoveIds(): Promise<IdMap> {
-  const records = await base('Move')
+async function fetchTableIds(tableName: string): Promise<IdMap> {
+  const records = await base(tableName)
     .select({
       fields: ['name'],
     })
@@ -113,7 +100,6 @@ async function exportMoves(typeIds: IdMap, moveIds: IdMap) {
   const creations = airtableMoves
     .filter((move) => moveIds[move.name] == null)
     .map((fields) => ({
-      id: moveIds[fields.name],
       fields,
     }));
 
@@ -128,9 +114,9 @@ async function exportMoves(typeIds: IdMap, moveIds: IdMap) {
   );
 
   await Promise.all(
-    groupsOf(10, creations).map(async (updateGroup) => {
+    groupsOf(10, creations).map(async (creationsGroup) => {
       try {
-        await base('Move').create(updateGroup);
+        await base('Move').create(creationsGroup);
       } catch (e) {
         console.error(e);
       }
@@ -138,11 +124,60 @@ async function exportMoves(typeIds: IdMap, moveIds: IdMap) {
   );
 }
 
+async function exportLearnsets(speciesIds: IdMap, moveIds: IdMap) {
+  // ninetales only
+  const NINETALES = SPECIES.filter((species) => species != null).find(
+    (species) => species.name === 'Ninetales'
+  )!;
+  const speciesRecordId = speciesIds[NINETALES.name];
+
+  await Promise.all(
+    NINETALES.learnset.map(async (learnedMove) => {
+      const moveName = MOVES[learnedMove.what].name;
+      const moveRecordId = moveIds[moveName];
+
+      const newRecords = learnedMove.how
+        .map((expression) => {
+          const [, generation, method, level] = /(\d)([A-Z])(\d*)/.exec(expression)!;
+
+          if (generation !== '8') {
+            return null;
+          }
+
+          const LEARN_METHOD_NAMES: { [code: string]: string } = {
+            E: 'EGG',
+            L: 'LEVEL_UP',
+            M: 'TM_TR',
+            R: 'OTHER',
+            S: 'CATCH',
+            T: 'TUTOR',
+            V: 'TRANSFER',
+          };
+
+          return {
+            fields: {
+              Move: [moveRecordId],
+              Species: [speciesRecordId],
+              learnedBy: LEARN_METHOD_NAMES[method],
+              levelLearned: parseInt(level),
+            } as LearnsetFields,
+          };
+        })
+        .filter((record) => record != null);
+      if (!isEmpty(newRecords)) {
+        await base('Learnset').create(newRecords);
+      }
+    })
+  );
+}
+
 async function main() {
   try {
-    const typeIds = await fetchTypeIds();
-    const moveIds = await fetchMoveIds();
-    exportMoves(typeIds, moveIds);
+    // const typeIds = await fetchTableIds('Type');
+    const moveIds = await fetchTableIds('Move');
+    // await exportMoves(typeIds, moveIds);
+    const speciesIds = await fetchTableIds('Species');
+    await exportLearnsets(speciesIds, moveIds);
   } catch (e) {
     console.error(e);
   }

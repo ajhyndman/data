@@ -1,3 +1,10 @@
+export type LearnsetFields = {
+  Species: [string];
+  Move: [string];
+  learnedBy: 'CATCH' | 'EGG' | 'LEVEL_UP' | 'OTHER' | 'TM_TR' | 'TRANSFER' | 'TUTOR';
+  levelLearned?: number;
+};
+
 export type MoveFields = {
   name: string;
   type: [string];

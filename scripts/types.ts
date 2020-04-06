@@ -49,6 +49,30 @@ export type Move = {
   type: number;
 };
 
+export type Species = {
+  abilities: number[];
+  altBattleFormes: number[];
+  baseStats: {
+    atk: number;
+    def: number;
+    hp: number;
+    spa: number;
+    spd: number;
+    spe: number;
+  };
+  evos: number[];
+  heightm: number;
+  isBattleOnly: boolean;
+  isNonstandard: null | 'CAP';
+  learnset: { how: string[]; what: number }[];
+  name: string;
+  num: number;
+  prevo?: number;
+  tier: never; // TODO
+  types: number[];
+  weightkg: number;
+};
+
 export type Type = {
   name: string;
 };
